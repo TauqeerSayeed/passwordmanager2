@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Style for the action buttons/inputs to display cleanly */
+        .action-form input {
+            width: 70px !important; /* Fixed width for small inputs */
+            padding: 4px 6px !important;
+            font-size: 0.75rem; /* text-xs */
+        }
+        .action-form button {
+            padding: 4px 8px !important;
+            font-size: 0.75rem;
+            line-height: 1rem;
+        }
+    </style>
+    <script>
+        function searchSystem() {
+            let input = document.getElementById("searchInput").value.toLowerCase();
+            let rows = document.getElementById("dataTable").getElementsByTagName('tbody')[0].rows;
+            for(let i=0; i<rows.length; i++){
+                let systemCell = rows[i].cells[1].innerText.toLowerCase();
+                if(systemCell.includes(input)) {
+                    rows[i].style.display = "";
+                } else {
+                    rows[i].style.display = "none";
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 sm:p-8">
+
+<div class="max-w-7xl mx-auto">
+
+    <div class="flex justify-between items-center mb-6 border-b pb-2">
+        <h2 class="text-3xl font-extrabold text-gray-900">🔑 Admin Dashboard</h2>
+
+        <form th:action="@{/logout}" method="post">
+            <button type="submit" class="bg-red-500 text-white font-medium px-4 py-2 rounded-lg shadow-md hover:bg-red-600 transition duration-200">
+                Logout
+            </button>
+        </form>
+
+    </div>
+
+    <div class="bg-white shadow-lg rounded-xl p-6 mb-8">
+        <h3 class="text-xl font-semibold text-gray-700 mb-4">Add New Credential Entry</h3>
+        <form th:action="@{/admin/add}" method="post" class="flex flex-wrap items-center gap-3">
+            <input type="text" name="system" placeholder="System Name" class="border border-gray-300 p-2 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 flex-grow" required>
+            <input type="text" name="environment" placeholder="Env." class="border border-gray-300 p-2 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 w-24" required>
+            <input type="text" name="url" placeholder="URL" class="border border-gray-300 p-2 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 flex-grow" required>
+            <input type="text" name="username" placeholder="Username" class="border border-gray-300 p-2 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 w-32" required>
+            <input type="text" name="password" placeholder="Password" class="border border-gray-300 p-2 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 w-32" required>
+            <button type="submit" class="bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:bg-indigo-700 transition duration-200">
+                + Add Entry
+            </button>
+        </form>
+    </div>
+
+    <input type="text" id="searchInput" onkeyup="searchSystem()" placeholder="🔍 Search by System Name..." class="border border-gray-300 p-3 rounded-lg mb-6 w-full max-w-lg focus:ring-indigo-500 focus:border-indigo-500">
+
+    <div class="bg-white shadow-lg rounded-xl overflow-hidden">
+        <div class="overflow-x-auto">
+            <table id="dataTable" class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">System</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Env</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Password</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                <tr th:each="entry, iterStat : ${entries}" class="hover:bg-gray-50 transition duration-150">
+                    <td class="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${iterStat.index + 1}"></td>
+                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700" th:text="${entry.system}"></td>
+                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700" th:text="${entry.environment}"></td>
+                    <td class="px-6 py-3 whitespace-nowrap text-sm">
+                        <a th:href="${entry.url}" target="_blank" class="text-indigo-600 hover:text-indigo-900 truncate max-w-[150px] inline-block" th:text="${entry.url}"></a>
+                    </td>
+                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700" th:text="${entry.username}"></td>
+                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700" th:text="${entry.password}"></td>
+                    <td class="px-6 py-3 whitespace-nowrap text-right text-sm font-medium">
+                        <form th:action="@{/admin/update/{id}(id=${entry.id})}" method="post" class="flex flex-wrap gap-1 items-center action-form">
+                            <input type="text" name="system" th:value="${entry.system}" class="border border-gray-300 rounded-lg" required>
+                            <input type="text" name="environment" th:value="${entry.environment}" class="border border-gray-300 rounded-lg" required>
+                            <input type="text" name="url" th:value="${entry.url}" class="border border-gray-300 rounded-lg" required>
+                            <input type="text" name="username" th:value="${entry.username}" class="border border-gray-300 rounded-lg" required>
+                            <input type="text" name="password" th:value="${entry.password}" class="border border-gray-300 rounded-lg" required>
+                            <button type="submit" class="bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition duration-150">Update</button>
+                        </form>
+                        <a th:href="@{/admin/delete/{id}(id=${entry.id})}" class="bg-red-500 text-white px-2 py-1 rounded-lg hover:bg-red-600 transition duration-150 mt-1 inline-block text-xs">Delete</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>
