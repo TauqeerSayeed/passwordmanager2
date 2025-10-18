@@ -1,32 +1,41 @@
-# Stage 1: Build the application
+# ================================
+# Stage 1: Build the Spring Boot Application
+# ================================
 FROM eclipse-temurin:17-jdk-focal AS builder
 
+# Set working directory inside the container
 WORKDIR /app
 
-# Copy Maven wrapper and configuration
+# Copy Maven wrapper files
 COPY mvnw .
 COPY .mvn .mvn
-COPY pom.xml .
 
-# ✅ Fix permission issue
+# Make mvnw executable
 RUN chmod +x mvnw
 
-# Download dependencies (cached unless pom.xml changes)
+# Copy pom.xml and download dependencies (cached layer)
+COPY pom.xml .
 RUN ./mvnw dependency:go-offline -B
 
-# Copy your source code
+# Copy source code
 COPY src src
 
-# Build the app
-RUN ./mvnw clean package -DskipTests
+# Build the Spring Boot app (skip test compilation and execution)
+RUN ./mvnw clean package -Dmaven.test.skip=true
 
-# Stage 2: Run the application
+# ================================
+# Stage 2: Run the Spring Boot Application
+# ================================
 FROM eclipse-temurin:17-jre-focal
 
+# Set working directory
 WORKDIR /app
 
+# Copy the built jar file from the builder stage
 COPY --from=builder /app/target/*.jar app.jar
 
-EXPOSE 8080
+# Expose application port (change if needed)
+EXPOSE 9090
 
+# Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
