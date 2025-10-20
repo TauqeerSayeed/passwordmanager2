@@ -44,6 +44,80 @@
                 alert('Copy failed. Please try again or copy manually.');
             });
         }
+
+        /**
+         * Exports the current data table content (excluding the first column, '#') to a CSV file.
+         */
+        function exportToCSV() {
+            const table = document.getElementById('dataTable');
+            let csv = [];
+
+            // 1. Get Header Row (excluding '#')
+            const headerRow = table.querySelector('thead tr');
+            let headers = Array.from(headerRow.querySelectorAll('th:not(:first-child)'))
+                               .map(th => th.textContent.trim());
+            csv.push(headers.join(','));
+
+            // 2. Get Data Rows (excluding hidden and '#' column)
+            const bodyRows = table.querySelectorAll('tbody tr');
+            bodyRows.forEach(row => {
+                // Only process visible rows (respecting search filter)
+                if (row.style.display !== 'none') {
+                    let rowData = [];
+                    // Start from index 1 to skip the '#' column
+                    for (let i = 1; i < row.cells.length; i++) {
+                        let cell = row.cells[i];
+                        // Extract text, handling the complex cell structures (URL/Username/Password)
+                        let textContent;
+                        if (cell.querySelector('a')) {
+                            // For URL column, get the text of the link
+                            textContent = cell.querySelector('a').textContent.trim();
+                        } else if (cell.querySelector('span')) {
+                            // For Username/Password columns, get the text of the first span
+                            textContent = cell.querySelector('span').textContent.trim();
+                        } else {
+                            // Fallback for simple cells (System, Environment)
+                            textContent = cell.textContent.trim();
+                        }
+
+                        // Escape quotes and wrap data in quotes if it contains commas or newlines
+                        textContent = textContent.replace(/"/g, '""');
+                        if (textContent.includes(',') || textContent.includes('\n')) {
+                            textContent = `"${textContent}"`;
+                        }
+                        rowData.push(textContent);
+                    }
+                    csv.push(rowData.join(','));
+                }
+            });
+
+            // 3. Create and Download CSV Blob
+            const csvContent = csv.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+
+            const now = new Date();
+            const filename = `credentials_export_${now.toISOString().slice(0, 10)}.csv`;
+
+            if (link.download !== undefined) {
+                // HTML5 download attribute
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            } else {
+                // Fallback for older browsers
+                console.error("Download failed. Browser does not support HTML5 download attribute.");
+            }
+        }
+
+
+        // Load the stored time on initialization
+        document.addEventListener('DOMContentLoaded', loadLastUpdatedTime);
     </script>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col">
@@ -61,7 +135,18 @@
 
     </div>
 
-    <input type="text" id="searchInput" onkeyup="searchSystem()" placeholder="🔍 Search by System Name..." class="border border-gray-300 p-3 rounded-lg mb-6 w-full max-w-lg focus:ring-indigo-500 focus:border-indigo-500">
+    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mb-6">
+        <input type="text" id="searchInput" onkeyup="searchSystem()" placeholder="🔍 Search by System Name..." class="border border-gray-300 p-3 rounded-lg w-full max-w-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-inner flex-grow">
+
+        <!-- NEW: Export Button -->
+        <button onclick="exportToCSV()"
+                class="bg-green-500 text-white font-medium px-4 py-3 rounded-lg shadow-md hover:bg-green-600 transition duration-200 flex items-center justify-center sm:w-auto w-full">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Export to CSV
+        </button>
+    </div>
 
     <div class="bg-white shadow-lg rounded-xl overflow-hidden">
         <div class="overflow-x-auto">
