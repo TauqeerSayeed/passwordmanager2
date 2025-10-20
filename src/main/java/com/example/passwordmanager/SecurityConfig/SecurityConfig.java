@@ -63,13 +63,13 @@ public class SecurityConfig {
         UserDetails admin = User.builder()
                 .username("admin")
                 // Use passwordEncoder.encode("admin123") to get the hash for production/DB
-                .password(passwordEncoder.encode("admin123"))
+                .password(passwordEncoder.encode("qaadmin"))
                 .roles("ADMIN", "USER") // Admin has both roles
                 .build();
 
         UserDetails user = User.builder()
                 .username("user")
-                .password(passwordEncoder.encode("user123"))
+                .password(passwordEncoder.encode("qauser"))
                 .roles("USER")
                 .build();
 

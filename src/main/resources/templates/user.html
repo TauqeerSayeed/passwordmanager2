@@ -74,6 +74,8 @@
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Password</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
+
                 </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -120,6 +122,7 @@
                             </button>
                         </div>
                     </td>
+                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700" th:text="${entry.lastUpdated}"></td>
                 </tr>
                 </tbody>
             </table>
@@ -130,7 +133,7 @@
 <footer class="text-xs text-gray-400 w-full text-center py-4 px-4 sm:px-8">
     <div class="flex items-center justify-center space-x-4">
             <span class="whitespace-nowrap">
-                Developed by <span class="font-medium text-gray-500">Tauqeer</span>
+                Developed by <span class="font-medium text-gray-500">Tauqeer Sayeed</span>
             </span>
 
         <span class="text-gray-300">|</span>

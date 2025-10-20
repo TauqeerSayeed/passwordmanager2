@@ -3,6 +3,8 @@ package com.example.passwordmanager.model;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "password_entry")
 public class PasswordEntry {
@@ -18,6 +20,9 @@ public class PasswordEntry {
     private String username;
     @Column(name = "`password`")
     private String password;
+
+    @Column(name = "last_updated")
+    private LocalDateTime lastUpdated;
 
     // Getters & Setters
     public Long getId() { return id; }
@@ -37,5 +42,13 @@ public class PasswordEntry {
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+
+    public LocalDateTime getLastUpdated() {
+        return lastUpdated;
+    }
+
+    public void setLastUpdated(LocalDateTime lastUpdated) {
+        this.lastUpdated = lastUpdated;
+    }
 }
 

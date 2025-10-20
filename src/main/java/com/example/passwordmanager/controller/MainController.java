@@ -6,10 +6,14 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+
 @Controller
 public class MainController {
 
     private final PasswordEntryService service;
+
+    private LocalDateTime lastUpdated;
 
     public MainController(PasswordEntryService service) {
         this.service = service;
@@ -43,6 +47,7 @@ public class MainController {
     // All CRUD operations are protected under the /admin/** rule
     @PostMapping("/admin/add")
     public String addEntry(@ModelAttribute PasswordEntry entry) {
+        entry.setLastUpdated(LocalDateTime.now());
         service.save(entry);
         return "redirect:/admin";
     }
@@ -56,6 +61,7 @@ public class MainController {
             existing.setUrl(entry.getUrl());
             existing.setUsername(entry.getUsername());
             existing.setPassword(entry.getPassword());
+            existing.setLastUpdated(LocalDateTime.now());
             service.save(existing);
         }
         return "redirect:/admin";
