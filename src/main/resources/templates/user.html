@@ -122,7 +122,7 @@
                             </button>
                         </div>
                     </td>
-                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700" th:text="${entry.lastUpdated}"></td>
+                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700" th:text="${#temporals.format(entry.lastUpdated, 'dd MMM yyyy, hh:mm a')}"></td>
                 </tr>
                 </tbody>
             </table>
@@ -133,7 +133,7 @@
 <footer class="text-xs text-gray-400 w-full text-center py-4 px-4 sm:px-8">
     <div class="flex items-center justify-center space-x-4">
             <span class="whitespace-nowrap">
-                Developed by <span class="font-medium text-gray-500">Tauqeer Sayeed</span>
+                Developed by <span class="font-medium text-gray-500">Tauqeer Sayeed </span>
             </span>
 
         <span class="text-gray-300">|</span>
