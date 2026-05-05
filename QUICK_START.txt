@@ -1,0 +1,78 @@
+✅ AUTO-RELOAD SETUP COMPLETE!
+================================
+
+Your Password Manager application is now configured with Spring Boot DevTools for automatic build and reload.
+No need to manually stop and restart the application anymore!
+
+📋 WHAT WAS ADDED/CHANGED:
+==========================
+
+1. ✅ pom.xml
+   - Added Spring Boot DevTools dependency
+   - Configured Maven plugin with fork=true for proper DevTools support
+
+2. ✅ application.properties
+   - spring.devtools.restart.enabled=true (Enable auto-restart)
+   - spring.devtools.livereload.enabled=true (Enable live reload)
+   - spring.thymeleaf.cache=false (Disable template caching)
+   - Added poll-interval and quiet-period settings
+
+3. ✅ run-dev.ps1
+   - PowerShell script for easy startup with colored output
+
+4. ✅ run-dev.bat
+   - Batch script for easy startup via Command Prompt
+
+5. ✅ DEVELOPMENT.md
+   - Complete development guide with troubleshooting tips
+
+🚀 HOW TO RUN:
+==============
+
+Option 1 (Recommended - PowerShell):
+   .\run-dev.ps1
+
+Option 2 (Command Prompt):
+   run-dev.bat
+
+Option 3 (Manual):
+   .\mvnw spring-boot:run
+
+Then open: http://localhost:8080
+
+👤 LOGIN CREDENTIALS:
+=====================
+Admin: admin / qaadmin
+User:  user  / qauser
+
+🔄 AUTO-RELOAD FEATURES:
+========================
+✅ Java file changes → Auto restart (2-3 seconds)
+✅ HTML/CSS/JS changes → Instant (no restart needed)
+✅ Properties file changes → Auto restart
+✅ Template changes → Instant refresh
+
+⚡ PERFORMANCE:
+===============
+- Restart Time: ~2-3 seconds
+- Poll Interval: 2 seconds
+- Quiet Period: 1 second
+
+📝 NEXT STEPS:
+==============
+1. Run the application using one of the scripts above
+2. Open http://localhost:8080 in your browser
+3. Make any code or template changes
+4. Changes will automatically reload (just refresh browser for UI changes)
+5. Watch console for "Started Application" messages
+
+💡 TIP:
+=======
+For even better experience, install a browser LiveReload extension:
+- Chrome: LiveReload by Livereload.com
+- Firefox: LiveReload Web Extension
+
+This will automatically refresh your browser when templates change!
+
+🎉 HAPPY CODING!
+

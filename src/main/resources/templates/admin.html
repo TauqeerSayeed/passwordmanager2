@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 50;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+            animation: slideUp 0.3s ease-out;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .modal-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0;
+        }
+
+        .close-btn {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #9ca3af;
+            border: none;
+            background: none;
+            transition: color 0.2s;
+        }
+
+        .close-btn:hover {
+            color: #ef4444;
+        }
+
+        .modal-body {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input {
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            justify-content: flex-end;
+        }
+
+        .btn-cancel {
+            padding: 0.75rem 1.5rem;
+            background-color: #f3f4f6;
+            border: 1px solid #d1d5db;
+            color: #374151;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-cancel:hover {
+            background-color: #e5e7eb;
+        }
+
+        .btn-save {
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+        }
+
+        .btn-save:active {
+            transform: translateY(0);
+        }
+
+        .update-btn {
+            background-color: #3b82f6 !important;
+            color: white !important;
+            padding: 6px 12px !important;
+            font-size: 0.75rem !important;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .update-btn:hover {
+            background-color: #2563eb !important;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+        }
+    </style>
+    <script>
+        function searchSystem() {
+            let input = document.getElementById("searchInput").value.toLowerCase();
+            let rows = document.getElementById("dataTable").getElementsByTagName('tbody')[0].rows;
+            for (let i = 0; i < rows.length; i++) {
+                let systemCell = rows[i].cells[1].innerText.toLowerCase();
+                rows[i].style.display = systemCell.includes(input) ? "" : "none";
+            }
+        }
+
+        function openUpdateModal(id, system, environment, url, username, password) {
+            const modal = document.getElementById('updateModal');
+            document.getElementById('updateId').value = id;
+            document.getElementById('updateSystem').value = system;
+            document.getElementById('updateEnvironment').value = environment;
+            document.getElementById('updateUrl').value = url;
+            document.getElementById('updateUsername').value = username;
+            document.getElementById('updatePassword').value = password;
+            modal.classList.add('show');
+        }
+
+        function closeUpdateModal() {
+            const modal = document.getElementById('updateModal');
+            modal.classList.remove('show');
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('updateModal');
+            if (event.target === modal) {
+                closeUpdateModal();
+            }
+        }
+
+        // Handle form submission - ensure it runs after DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            const updateForm = document.getElementById('updateForm');
+            if (updateForm) {
+                updateForm.addEventListener('submit', function(e) {
+                    const id = document.getElementById('updateId').value;
+                    if (!id || id === '' || id === 'null') {
+                        e.preventDefault();
+                        alert('Please select an entry to update');
+                        return false;
+                    }
+                    this.action = '/admin/update/' + id;
+                });
+            }
+        });
+    </script>
+</head>
+<body class="bg-gray-100 min-h-screen p-4 sm:p-8">
+<div class="max-w-7xl mx-auto">
+
+    <div class="flex justify-between items-center mb-6 border-b pb-2">
+        <h2 class="text-3xl font-extrabold text-gray-900">🔑 Admin Dashboard</h2>
+        <form th:action="@{/logout}" method="post">
+            <button type="submit" class="bg-red-500 text-white font-medium px-4 py-2 rounded-lg shadow-md hover:bg-red-600 transition duration-200">
+                Logout
+            </button>
+        </form>
+    </div>
+
+    <div class="bg-white shadow-lg rounded-xl p-6 mb-8">
+        <h3 class="text-xl font-semibold text-gray-700 mb-4">Add New Credential Entry</h3>
+        <form th:action="@{/admin/add}" method="post" class="flex flex-wrap items-center gap-3">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <input type="text" name="system" placeholder="System Name" class="border border-gray-300 p-2 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 flex-grow" required>
+            <input type="text" name="environment" placeholder="Env." class="border border-gray-300 p-2 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 w-24" required>
+            <input type="text" name="url" placeholder="URL" class="border border-gray-300 p-2 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 flex-grow" required>
+            <input type="text" name="username" placeholder="Username" class="border border-gray-300 p-2 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 w-32" required>
+            <input type="text" name="password" placeholder="Password" class="border border-gray-300 p-2 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 w-32" required>
+            <button type="submit" class="bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:bg-indigo-700 transition duration-200">
+                + Add Entry
+            </button>
+        </form>
+    </div>
+
+    <input type="text" id="searchInput" onkeyup="searchSystem()" placeholder="🔍 Search by System Name..." class="border border-gray-300 p-3 rounded-lg mb-6 w-full max-w-lg focus:ring-indigo-500 focus:border-indigo-500">
+
+    <div class="bg-white shadow-lg rounded-xl overflow-hidden">
+        <div class="overflow-x-auto">
+            <table id="dataTable" class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">System</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Env</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Password</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+                </thead>
+
+                <tbody class="bg-white divide-y divide-gray-200">
+                <tr th:each="entry, iterStat : ${entries}" class="hover:bg-gray-50 transition duration-150">
+                    <td class="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${iterStat.index + 1}"></td>
+                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700" th:text="${entry.system}"></td>
+                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700" th:text="${entry.environment}"></td>
+                    <td class="px-6 py-3 whitespace-nowrap text-sm">
+                        <a th:href="${entry.url}" target="_blank" class="text-indigo-600 hover:text-indigo-900 truncate max-w-[150px] inline-block" th:text="${entry.url}"></a>
+                    </td>
+                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700" th:text="${entry.username}"></td>
+                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700" th:text="${entry.password}"></td>
+
+                    <!-- New Column: Last Updated -->
+                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-500" th:text="${#temporals.format(entry.lastUpdated, 'dd MMM yyyy, hh:mm a')}"></td>
+
+                    <td class="px-6 py-3 whitespace-nowrap text-right text-sm font-medium flex gap-2">
+                        <button
+                            type="button"
+                            class="update-btn"
+                            onclick="openUpdateModal(this.getAttribute('data-id'), this.getAttribute('data-system'), this.getAttribute('data-environment'), this.getAttribute('data-url'), this.getAttribute('data-username'), this.getAttribute('data-password'))"
+                            th:data-id="${entry.id}"
+                            th:data-system="${entry.system}"
+                            th:data-environment="${entry.environment}"
+                            th:data-url="${entry.url}"
+                            th:data-username="${entry.username}"
+                            th:data-password="${entry.password}">
+                            ✏️ Update
+                        </button>
+                        <a th:href="@{/admin/delete/{id}(id=${entry.id})}" class="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition duration-150 inline-block text-xs" style="background-color: #ef4444 !important; padding: 6px 12px !important;">🗑️ Delete</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Update Modal -->
+<div id="updateModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>🔐 Update Credentials</h2>
+            <button type="button" class="close-btn" onclick="closeUpdateModal()">&times;</button>
+        </div>
+        <form id="updateForm" method="post" th:action="@{/admin/update/__${id}__}">
+            <div class="modal-body">
+                <input type="hidden" id="updateId" name="id">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                <div class="form-group">
+                    <label for="updateSystem">System Name</label>
+                    <input type="text" id="updateSystem" name="system" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="updateEnvironment">Environment</label>
+                    <input type="text" id="updateEnvironment" name="environment" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="updateUrl">URL</label>
+                    <input type="text" id="updateUrl" name="url" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="updateUsername">Username</label>
+                    <input type="text" id="updateUsername" name="username" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="updatePassword">Password</label>
+                    <input type="text" id="updatePassword" name="password" required>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-cancel" onclick="closeUpdateModal()">Cancel</button>
+                    <button type="submit" class="btn-save">Save Changes</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<footer class="text-xs text-gray-400 w-full text-center py-4">
+    <div class="flex items-center justify-center space-x-4">
+        <span class="whitespace-nowrap">
+            Developed by <span class="font-medium text-gray-500">Tauqeer Sayeed</span>
+        </span>
+        <span class="text-gray-300">|</span>
+        <a href="https://www.linkedin.com/in/tauqeer-sayeed/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-gray-400 hover:text-indigo-600 transition duration-150 whitespace-nowrap">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24" class="mr-1">
+                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.532-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+            </svg>
+            Connect on LinkedIn
+        </a>
+    </div>
+</footer>
+</body>
+</html>
