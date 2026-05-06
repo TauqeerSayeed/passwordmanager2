@@ -2,32 +2,184 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Dashboard</title>
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
         body { font-family: 'Inter', sans-serif; }
-    </style>
-    <script>
-        function searchSystem() {
-            let input = document.getElementById("searchInput").value.toLowerCase();
-            let rows = document.getElementById("dataTable").getElementsByTagName('tbody')[0].rows;
-            for(let i=0; i<rows.length; i++){
-                let systemCell = rows[i].cells[1].innerText.toLowerCase();
-                if(systemCell.includes(input)) {
-                    rows[i].style.display = "";
-                } else {
-                    rows[i].style.display = "none";
-                }
-            }
+
+        /* Premium gradient header */
+        .gradient-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
+        /* Premium statistics cards */
+        .stat-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.12);
+            transform: translateY(-4px);
+        }
+
+        .stat-value {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Table premium interactions */
+        .premium-table tbody tr {
+            transition: all 0.3s ease;
+            border-bottom: 1px solid #eef2ff;
+        }
+
+        .premium-table tbody tr:hover {
+            background-color: #f5f3ff;
+            box-shadow: inset 0 2px 8px rgba(102, 126, 234, 0.08);
+            transform: translateX(2px);
+        }
+
+        /* Action buttons */
+        .action-btn {
+            transition: all 0.2s ease;
+            opacity: 0.75;
+        }
+
+        .action-btn:hover {
+            opacity: 1;
+            transform: scale(1.08);
+        }
+
+        /* Copy feedback pulse */
+        @keyframes copyPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.18); }
+            100% { transform: scale(1); }
+        }
+
+        .copy-pulse {
+            animation: copyPulse 0.4s ease;
+        }
+
+        /* Slide in on load */
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-slide {
+            animation: slideIn 0.35s ease-out;
+        }
+
+        /* Premium environment badges */
+        .badge-env {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #fff;
+        }
+
+        .badge-sit { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .badge-preprod { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .badge-sit2 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .badge-prod { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .badge-na { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+
+        /* Password masking removed by request (passwords shown as plain text) */
+
+        /* Premium button */
+        .btn-premium {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 6px 18px rgba(102, 126, 234, 0.25);
+            transition: all 0.25s ease;
+        }
+
+        .btn-premium:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 26px rgba(102, 126, 234, 0.35);
+        }
+
+        .btn-premium:active {
+            transform: translateY(0);
+        }
+    </style>
+
+    <script>
+        // ===== Helpers =====
+        function normalizeEnv(env) {
+            return (env || "")
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, "")
+                .replace("pp", "preprod")
+                .replace("preproduction", "preprod")
+                .replace("production", "prod")
+                .trim();
+        }
+
+        function getEnvBadgeClass(env) {
+            const normalized = normalizeEnv(env);
+            if (normalized === "sit") return "badge-sit";
+            if (normalized === "sit2") return "badge-sit2";
+            if (normalized === "preprod") return "badge-preprod";
+            if (normalized === "prod") return "badge-prod";
+            return "badge-na";
+        }
+
+        function escapeCsv(value) {
+            const text = (value ?? "").toString();
+            const escaped = text.replace(/"/g, '""');
+            return (escaped.includes(',') || escaped.includes('\n')) ? `"${escaped}"` : escaped;
+        }
+
+        // ===== Existing feature: Search by System (enhanced with live stats) =====
+        function searchSystem() {
+            const input = document.getElementById("searchInput").value.toLowerCase();
+            const rows = document.querySelectorAll('#dataTable tbody tr');
+
+            rows.forEach(row => {
+                const systemCell = row.cells[1]?.innerText?.toLowerCase() || "";
+                row.style.display = systemCell.includes(input) ? "" : "none";
+            });
+
+            updateStats();
+        }
+
+        // ===== Existing feature: Copy to clipboard (enhanced feedback) =====
         function copyToClipboard(content, buttonElement) {
             const originalTitle = buttonElement.title;
-            navigator.clipboard.writeText(content).then(() => {
-                const originalSvg = buttonElement.innerHTML;
+            const originalSvg = buttonElement.innerHTML;
 
-                // Temporarily replace with a checkmark icon for feedback
+            navigator.clipboard.writeText(content).then(() => {
+                buttonElement.classList.add('copy-pulse');
                 buttonElement.innerHTML = `
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
@@ -38,299 +190,300 @@
                 setTimeout(() => {
                     buttonElement.innerHTML = originalSvg;
                     buttonElement.title = originalTitle;
-                }, 1500);
+                    buttonElement.classList.remove('copy-pulse');
+                }, 1400);
             }).catch(err => {
                 console.error('Could not copy text: ', err);
                 alert('Copy failed. Please try again or copy manually.');
             });
         }
 
-        /**
-         * Exports the current data table content (excluding the first column, '#') to a CSV file.
-         */
+        // ===== Existing feature: Export to CSV (keeps working even with masked passwords) =====
         function exportToCSV() {
             const table = document.getElementById('dataTable');
-            let csv = [];
+            const csv = [];
 
-            // 1. Get Header Row (excluding '#')
+            // Header (exclude '#')
             const headerRow = table.querySelector('thead tr');
-            let headers = Array.from(headerRow.querySelectorAll('th:not(:first-child)'))
-                               .map(th => th.textContent.trim());
-            csv.push(headers.join(','));
+            const headers = Array.from(headerRow.querySelectorAll('th:not(:first-child)'))
+                .map(th => th.textContent.trim());
+            csv.push(headers.map(escapeCsv).join(','));
 
-            // 2. Get Data Rows (excluding hidden and '#' column)
-            const bodyRows = table.querySelectorAll('tbody tr');
-            bodyRows.forEach(row => {
-                // Only process visible rows (respecting search filter)
-                if (row.style.display !== 'none') {
-                    let rowData = [];
-                    // Start from index 1 to skip the '#' column
-                    for (let i = 1; i < row.cells.length; i++) {
-                        let cell = row.cells[i];
-                        // Extract text, handling the complex cell structures (URL/Username/Password)
-                        let textContent;
-                        if (cell.querySelector('a')) {
-                            // For URL column, get the text of the link
-                            textContent = cell.querySelector('a').textContent.trim();
-                        } else if (cell.querySelector('span')) {
-                            // For Username/Password columns, get the text of the first span
-                            textContent = cell.querySelector('span').textContent.trim();
-                        } else {
-                            // Fallback for simple cells (System, Environment)
-                            textContent = cell.textContent.trim();
-                        }
+            // Data rows (visible only)
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                if (row.style.display === 'none') return;
 
-                        // Escape quotes and wrap data in quotes if it contains commas or newlines
-                        textContent = textContent.replace(/"/g, '""');
-                        if (textContent.includes(',') || textContent.includes('\n')) {
-                            textContent = `"${textContent}"`;
-                        }
-                        rowData.push(textContent);
-                    }
-                    csv.push(rowData.join(','));
-                }
+                const systemValue = row.cells[1]?.innerText?.trim() || "";
+                const envValue = row.querySelector('[data-env]')?.getAttribute('data-env') || row.cells[2]?.innerText?.trim() || "";
+                const urlValue = row.querySelector('td:nth-child(4) a')?.textContent?.trim() || "";
+                const usernameValue = row.querySelector('[data-username]')?.getAttribute('data-username') || row.querySelector('td:nth-child(5) span')?.textContent?.trim() || "";
+                const passwordValue = row.querySelector('[data-password]')?.getAttribute('data-password') || "";
+                const lastUpdatedValue = row.cells[6]?.innerText?.trim() || "";
+
+                const rowData = [systemValue, envValue, urlValue, usernameValue, passwordValue, lastUpdatedValue].map(escapeCsv);
+                csv.push(rowData.join(','));
             });
 
-            // 3. Create and Download CSV Blob
-            const csvContent = csv.join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-
+            const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
             const now = new Date();
             const filename = `credentials_export_${now.toISOString().slice(0, 10)}.csv`;
 
-            if (link.download !== undefined) {
-                // HTML5 download attribute
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", filename);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-            } else {
-                // Fallback for older browsers
-                console.error("Download failed. Browser does not support HTML5 download attribute.");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // ===== Existing feature: Environment Filter Dropdown =====
+        function toggleEnvDropdown(event) {
+            if (event) event.stopPropagation();
+            const dropdown = document.getElementById("envDropdown");
+            dropdown.classList.toggle("hidden");
+        }
+
+        function closeEnvDropdownIfOutside(event) {
+            const dropdown = document.getElementById("envDropdown");
+            const button = document.getElementById("envFilterButton");
+            if (!dropdown || !button) return;
+            if (!dropdown.contains(event.target) && !button.contains(event.target)) {
+                dropdown.classList.add("hidden");
             }
         }
 
-        // Load the stored time on initialization
-        document.addEventListener('DOMContentLoaded', loadLastUpdatedTime);
+        function filterByEnvironment(env) {
+            const normalizedEnv = normalizeEnv(env);
+            const rows = document.querySelectorAll("#dataTable tbody tr");
 
-<!--        // Toggle the dropdown visibility-->
-<!--function toggleEnvDropdown() {-->
-<!--    const dropdown = document.getElementById("envDropdown");-->
-<!--    dropdown.classList.toggle("hidden");-->
-<!--}-->
+            rows.forEach(row => {
+                const envCellText = row.querySelector('[data-env]')?.getAttribute('data-env') || row.cells[2]?.innerText || "";
+                const normalizedRowEnv = normalizeEnv(envCellText);
+                row.style.display = (normalizedEnv === "" || normalizedRowEnv === normalizedEnv) ? "" : "none";
+            });
 
-<!--// Close dropdown if clicked outside-->
-<!--document.addEventListener('click', function(event) {-->
-<!--    const dropdown = document.getElementById("envDropdown");-->
-<!--    const button = document.getElementById("envFilterButton");-->
-<!--    if (!dropdown.contains(event.target) && !button.contains(event.target)) {-->
-<!--        dropdown.classList.add("hidden");-->
-<!--    }-->
-<!--});-->
-
-<!--// Filter rows by Environment column-->
-<!--function filterByEnvironment(envValue) {-->
-<!--    const rows = document.getElementById("dataTable").getElementsByTagName('tbody')[0].rows;-->
-
-<!--    for (let i = 0; i < rows.length; i++) {-->
-<!--        const envCell = rows[i].cells[2].innerText.trim().toLowerCase();-->
-<!--        if (envValue === "" || envCell === envValue.toLowerCase()) {-->
-<!--            rows[i].style.display = "";-->
-<!--        } else {-->
-<!--            rows[i].style.display = "none";-->
-<!--        }-->
-<!--    }-->
-
-<!--    // Hide dropdown after selection-->
-<!--    document.getElementById("envDropdown").classList.add("hidden");-->
-<!--}-->
-
-function toggleEnvDropdown() {
-    const dropdown = document.getElementById("envDropdown");
-    dropdown.classList.toggle("hidden");
-}
-
-// Close dropdown if clicked outside
-document.addEventListener('click', function(event) {
-    const dropdown = document.getElementById("envDropdown");
-    const button = document.getElementById("envFilterButton");
-    if (!dropdown.contains(event.target) && !button.contains(event.target)) {
-        dropdown.classList.add("hidden");
-    }
-});
-
-// ✅ Filter rows by Environment column (handles SIT, PP, PREPROD, etc.)
-function filterByEnvironment(env) {
-    const normalizedEnv = normalizeEnv(env);
-    const rows = document.querySelectorAll("#dataTable tbody tr");
-
-    rows.forEach(row => {
-        const envCell = row.cells[2]?.innerText?.trim() || "";
-        const normalizedRowEnv = normalizeEnv(envCell);
-
-        if (normalizedEnv === "" || normalizedRowEnv === normalizedEnv) {
-            row.style.display = "";
-        } else {
-            row.style.display = "none";
+            document.getElementById("envDropdown").classList.add("hidden");
+            updateStats();
         }
-    });
 
-    // Hide dropdown after selection
-    document.getElementById("envDropdown").classList.add("hidden");
-}
+        // Password masking/toggle removed by request (passwords shown in plain text)
 
-// ✅ Converts different variations to a standard value
-function normalizeEnv(env) {
-<!--    const e = env.toLowerCase().replace(/[^a-z0-9]/g, ""); // removes spaces, -, _-->
-<!--    if (["pp", "preprod", "preproduction", "preprod", "preprod", "preprod"].includes(e)) {-->
-<!--        return "preprod";-->
-<!--    }-->
-<!--    return e;-->
-return env
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "") // remove dashes, underscores, spaces, etc.
-        .replace("preprod", "preprod") // optional redundancy
-        .replace("pp", "preprod") // treat "pp" as "preprod"
-        .replace("sit2", "sit2")
-        .replace("sit", "sit")
-        .replace("prod", "prod")
-        .replace("production", "prod")
-        .replace("preproduction","preprod")
-        .trim();
-}
+        // ===== Premium feature: Live Statistics =====
+        function updateStats() {
+            const rows = document.querySelectorAll('#dataTable tbody tr');
+            let total = 0;
+            let visible = 0;
+            let sit = 0;
+            let prod = 0;
 
+            rows.forEach(row => {
+                total++;
+                if (row.style.display === 'none') return;
+                visible++;
+
+                const envValue = row.querySelector('[data-env]')?.getAttribute('data-env') || row.cells[2]?.innerText || "";
+                const norm = normalizeEnv(envValue);
+                if (norm === 'sit') sit++;
+                if (norm === 'prod') prod++;
+            });
+
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-visible').textContent = visible;
+            document.getElementById('stat-sit').textContent = sit;
+            document.getElementById('stat-prod').textContent = prod;
+        }
+
+        // Apply badge classes after DOM renders
+        function applyEnvBadges() {
+            const spans = document.querySelectorAll('[data-env]');
+            spans.forEach(span => {
+                const env = span.getAttribute('data-env') || span.textContent;
+                span.classList.remove('badge-sit', 'badge-preprod', 'badge-sit2', 'badge-prod', 'badge-na');
+                span.classList.add('badge-env');
+                span.classList.add(getEnvBadgeClass(env));
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('click', closeEnvDropdownIfOutside);
+            applyEnvBadges();
+            updateStats();
+        });
     </script>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col">
+
+<body class="bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 min-h-screen flex flex-col">
+
+<!-- Premium Header -->
+<div class="gradient-header text-white shadow-2xl">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 py-8">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-4xl font-extrabold mb-2">🔐 Password Manager</h1>
+                <p class="text-purple-100 text-sm">Secure credential management at your fingertips</p>
+            </div>
+
+            <form th:action="@{/logout}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button type="submit" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white font-semibold px-6 py-3 rounded-lg transition duration-200 backdrop-blur-sm border border-white border-opacity-30">
+                    🚪 Logout
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
 
 <div class="max-w-7xl mx-auto w-full flex-grow p-4 sm:p-8">
 
-    <div class="flex justify-between items-center mb-6 border-b pb-2">
-        <h2 class="text-3xl font-extrabold text-gray-900">📂 Tauqeer Password Manager</h2>
-
-        <form th:action="@{/logout}" method="post">
-            <button type="submit" class="bg-red-500 text-white font-medium px-4 py-2 rounded-lg shadow-md hover:bg-red-600 transition duration-200">
-                Logout
-            </button>
-        </form>
-
+    <!-- Statistics Dashboard -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-slide">
+        <div class="stat-card">
+            <div class="stat-value" id="stat-total">0</div>
+            <div class="stat-label">Total Credentials</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="stat-visible">0</div>
+            <div class="stat-label">Visible Count</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="stat-sit">0</div>
+            <div class="stat-label">SIT Environments</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="stat-prod">0</div>
+            <div class="stat-label">Production</div>
+        </div>
     </div>
 
-    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mb-6">
-        <input type="text" id="searchInput" onkeyup="searchSystem()" placeholder="🔍 Search by System Name..." class="border border-gray-300 p-3 rounded-lg w-full max-w-lg focus:ring-indigo-500 focus:border-indigo-500 shadow-inner flex-grow">
+    <!-- Controls -->
+    <div class="bg-white rounded-2xl shadow-xl p-6 mb-8 animate-slide">
+        <div class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+            <div class="flex-grow w-full md:w-auto">
+                <div class="relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input type="text" id="searchInput" onkeyup="searchSystem()" placeholder="🔍 Search by System Name..."
+                           class="pl-10 w-full border-2 border-gray-200 p-3 rounded-xl focus:border-purple-500 focus:outline-none transition duration-200 shadow-sm hover:border-gray-300">
+                </div>
+            </div>
 
-        <!-- NEW: Export Button -->
-        <button onclick="exportToCSV()"
-                class="bg-green-500 text-white font-medium px-4 py-3 rounded-lg shadow-md hover:bg-green-600 transition duration-200 flex items-center justify-center sm:w-auto w-full">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Export to CSV
-        </button>
+            <div class="flex gap-3 w-full md:w-auto flex-wrap">
+                <button type="button" onclick="exportToCSV()" class="btn-premium flex items-center justify-center gap-2 flex-1 md:flex-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Export to CSV
+                </button>
+            </div>
+        </div>
     </div>
 
-    <div class="bg-white shadow-lg rounded-xl overflow-hidden">
+    <!-- Premium Table -->
+    <div class="bg-white rounded-2xl shadow-2xl overflow-hidden animate-slide">
         <div class="overflow-x-auto">
-            <table id="dataTable" class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+            <table id="dataTable" class="premium-table w-full">
+                <thead class="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">System</th>
-<!--                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Environment</th>-->
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">#</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">System</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
                         <div class="flex items-center space-x-2">
                             <span>Environment</span>
-                            <!-- Filter Icon with Dropdown -->
+
                             <div class="relative inline-block text-left">
-                                <button id="envFilterButton"
-                                        onclick="toggleEnvDropdown()"
-                                        class="text-gray-400 hover:text-indigo-600 focus:outline-none"
+                                <button type="button" id="envFilterButton" onclick="toggleEnvDropdown(event)"
+                                        class="text-gray-400 hover:text-purple-600 focus:outline-none transition duration-200"
                                         title="Filter by Environment">
-                                    <!-- Funnel Icon -->
-                                    <svg xmlns="http://www.w3.org/2000/svg"
-                                         class="h-4 w-4" fill="none"
-                                         viewBox="0 0 24 24"
-                                         stroke="currentColor"
-                                         stroke-width="2">
-                                        <path stroke-linecap="round"
-                                              stroke-linejoin="round"
-                                              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L14 13.414V20a1 1 0 01-1.447.894l-4-2A1 1 0 018 18v-4.586L3.293 6.707A1 1 0 013 6V4z" />
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L14 13.414V20a1 1 0 01-1.447.894l-4-2A1 1 0 018 18v-4.586L3.293 6.707A1 1 0 013 6V4z" />
                                     </svg>
                                 </button>
 
-                                <!-- Dropdown Menu -->
-                                <div id="envDropdown"
-                                     class="hidden absolute right-0 mt-2 w-28 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
-                                    <ul class="py-1 text-sm text-gray-700">
-                                        <li><button onclick="filterByEnvironment('')" class="w-full text-left px-3 py-2 hover:bg-gray-100">All</button></li>
-                                        <li><button onclick="filterByEnvironment('SIT')" class="w-full text-left px-3 py-2 hover:bg-gray-100">SIT</button></li>
-                                        <li><button onclick="filterByEnvironment('PREPROD')" class="w-full text-left px-3 py-2 hover:bg-gray-100">PREPROD</button></li>
-                                        <li><button onclick="filterByEnvironment('SIT2')" class="w-full text-left px-3 py-2 hover:bg-gray-100">SIT2</button></li>
-                                        <li><button onclick="filterByEnvironment('PROD')" class="w-full text-left px-3 py-2 hover:bg-gray-100">PROD</button></li>
-                                        <li><button onclick="filterByEnvironment('NA')" class="w-full text-left px-3 py-2 hover:bg-gray-100">NA</button></li>
+                                <div id="envDropdown" class="hidden absolute right-0 mt-2 w-36 bg-white border-2 border-purple-200 rounded-xl shadow-2xl z-10 overflow-hidden">
+                                    <ul class="py-1 text-sm">
+                                        <li><button type="button" onclick="filterByEnvironment('')" class="w-full text-left px-4 py-3 hover:bg-purple-50 text-gray-700 font-medium transition">All</button></li>
+                                        <li><button type="button" onclick="filterByEnvironment('SIT')" class="w-full text-left px-4 py-3 hover:bg-purple-50 text-gray-700 transition">SIT</button></li>
+                                        <li><button type="button" onclick="filterByEnvironment('PREPROD')" class="w-full text-left px-4 py-3 hover:bg-purple-50 text-gray-700 transition">PREPROD</button></li>
+                                        <li><button type="button" onclick="filterByEnvironment('SIT2')" class="w-full text-left px-4 py-3 hover:bg-purple-50 text-gray-700 transition">SIT2</button></li>
+                                        <li><button type="button" onclick="filterByEnvironment('PROD')" class="w-full text-left px-4 py-3 hover:bg-purple-50 text-gray-700 transition">PROD</button></li>
+                                        <li><button type="button" onclick="filterByEnvironment('NA')" class="w-full text-left px-4 py-3 hover:bg-purple-50 text-gray-700 transition">NA</button></li>
                                     </ul>
                                 </div>
                             </div>
                         </div>
                     </th>
 
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">URL</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Password</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
-
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">URL</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Username</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Password</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Last Updated</th>
                 </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                <tr th:each="entry, iterStat : ${entries}" class="hover:bg-gray-50 transition duration-150">
-                    <td class="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${iterStat.index + 1}"></td>
-                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700" th:text="${entry.system}"></td>
-                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700" th:text="${entry.environment}"></td>
 
-                    <td class="px-6 py-3 whitespace-nowrap text-sm">
+                <tbody class="divide-y divide-gray-100">
+                <tr th:each="entry, iterStat : ${entries}">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-purple-600" th:text="${iterStat.index + 1}"></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900" th:text="${entry.system}"></td>
+
+                    <!-- Environment badge -->
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <span class="badge-env badge-na" th:attr="data-env=${entry.environment}" th:text="${entry.environment}"></span>
+                    </td>
+
+                    <!-- URL + copy -->
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
                         <div class="flex items-center space-x-2">
-                            <a th:href="${entry.url}" target="_blank" class="text-indigo-600 hover:text-indigo-900 truncate max-w-[150px] inline-block" th:text="${entry.url}"></a>
-                            <button onclick="copyToClipboard(this.previousElementSibling.innerText, this)"
-                                    class="text-gray-400 hover:text-indigo-600 focus:outline-none transition duration-150 p-1 rounded-full hover:bg-gray-200"
+                            <a th:href="${entry.url}" target="_blank" class="text-purple-600 hover:text-purple-900 font-semibold truncate max-w-[170px]" th:text="${entry.url}"></a>
+                            <button type="button" onclick="copyToClipboard(this.previousElementSibling.innerText, this)"
+                                    class="action-btn text-gray-400 hover:text-purple-600 p-1 rounded-lg hover:bg-purple-100 transition duration-150"
                                     title="Copy URL">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                 </svg>
                             </button>
                         </div>
                     </td>
 
-                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700">
+                    <!-- Username + copy -->
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
                         <div class="flex items-center justify-between space-x-2">
-                            <span th:id="'username-' + ${entry.id}" th:text="${entry.username}"></span>
-                            <button onclick="copyToClipboard(this.previousElementSibling.innerText, this)"
-                                    class="text-gray-400 hover:text-indigo-600 focus:outline-none transition duration-150 p-1 rounded-full hover:bg-gray-200"
+                            <span th:id="'username-' + ${entry.id}" th:attr="data-username=${entry.username}" class="font-semibold text-gray-900" th:text="${entry.username}"></span>
+                            <button type="button" onclick="copyToClipboard(this.previousElementSibling.innerText, this)"
+                                    class="action-btn text-gray-400 hover:text-purple-600 p-1 rounded-lg hover:bg-purple-100 transition duration-150"
                                     title="Copy Username">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                 </svg>
                             </button>
                         </div>
                     </td>
 
-                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700">
+                    <!-- Password: plain text + copy -->
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
                         <div class="flex items-center justify-between space-x-2">
-                            <span th:id="'password-' + ${entry.id}" th:text="${entry.password}"></span>
-                            <button onclick="copyToClipboard(this.previousElementSibling.innerText, this)"
-                                    class="text-gray-400 hover:text-indigo-600 focus:outline-none transition duration-150 p-1 rounded-full hover:bg-gray-200"
+                            <span th:id="'password-' + ${entry.id}"
+                                  class="font-mono text-gray-900"
+                                  th:attr="data-password=${entry.password}"
+                                  th:text="${entry.password}"></span>
+
+                            <button type="button"
+                                    th:attr="data-id=${entry.id}"
+                                    onclick="copyToClipboard(document.getElementById('password-' + this.getAttribute('data-id')).getAttribute('data-password') || '', this)"
+                                    class="action-btn text-gray-400 hover:text-purple-600 p-1 rounded-lg hover:bg-purple-100 transition duration-150"
                                     title="Copy Password">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                 </svg>
                             </button>
                         </div>
                     </td>
-                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700" th:text="${#temporals.format(entry.lastUpdated, 'dd MMM yyyy, hh:mm a')}"></td>
+
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600" th:text="${#temporals.format(entry.lastUpdated, 'dd MMM yyyy, hh:mm a')}"></td>
                 </tr>
                 </tbody>
             </table>
@@ -338,21 +491,24 @@ return env
     </div>
 </div>
 
-<footer class="text-xs text-gray-400 w-full text-center py-4 px-4 sm:px-8">
-    <div class="flex items-center justify-center space-x-4">
+<!-- Premium Footer -->
+<footer class="text-xs text-gray-500 bg-white bg-opacity-70 backdrop-blur w-full text-center py-6 px-4 sm:px-8 border-t border-gray-200 mt-12">
+    <div class="max-w-7xl mx-auto">
+        <div class="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-4">
             <span class="whitespace-nowrap">
-                Developed by <span class="font-medium text-gray-500">Tauqeer Sayeed </span>
+                Developed by <span class="font-semibold text-gray-900">Tauqeer Sayeed</span>
             </span>
-
-        <span class="text-gray-300">|</span>
-
-        <a href="https://www.linkedin.com/in/tauqeer-sayeed/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-gray-400 hover:text-indigo-600 transition duration-150 whitespace-nowrap">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24" class="mr-1">
-                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.532-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-            </svg>
-            Connect on LinkedIn
-        </a>
+            <span class="text-gray-300 hidden sm:inline">|</span>
+            <a href="https://www.linkedin.com/in/tauqeer-sayeed/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-gray-500 hover:text-purple-600 transition duration-150 whitespace-nowrap font-medium">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24" class="mr-2">
+                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.532-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                </svg>
+                Connect on LinkedIn
+            </a>
+        </div>
     </div>
 </footer>
+
 </body>
 </html>
+
